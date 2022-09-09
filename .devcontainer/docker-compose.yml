@@ -1,0 +1,111 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        # [Choice] Ruby version: 3, 3.0, 2, 2.7, 2.6, 2.5
+        VARIANT: "3.1-bullseye"
+        # [Choice] Node.js version: lts/*, 16, 14, 12, 10
+        NODE_VERSION: "lts/*"
+
+    init: true
+    volumes:
+      - ..:/workspace:cached
+      - app-data:/home/vscode/data
+    depends_on:
+      - pg_primary
+      - pg_replica
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
+    network_mode: service:pg_primary
+
+    environment:
+      DATABASE_HOST_PRIMARY: pg_primary
+      DATABASE_HOST_READONLY: pg_replica
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: password
+
+    # Uncomment the next line to use a non-root user for all processes.
+    user: vscode
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  pg_primary:
+    build:
+      context: ./pg/
+      dockerfile: Dockerfile.primary
+    command: postgres -c log_destination=stderr -c log_statement=all
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgprimary-data:/var/lib/postgresql/data
+  pg_replica:
+    build:
+      context: ./pg/
+      dockerfile: Dockerfile.replica
+    command: postgres -c log_destination=stderr -c log_statement=all
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgreplica-data:/var/lib/postgresql/data
+    depends_on:
+      - pg_primary
+  # db_primary:
+  #   image: postgres:latest
+  #   # restart: unless-stopped
+  #   volumes:
+  #     - postgresprimary-data:/var/lib/postgresql/data
+  #     - ./setup-master.sh:/docker-entrypoint-initdb.d/setup-master.sh
+  #     - ./create-db-user.sql:/docker-entrypoint-initdb.d/create-primary-db-user.sql
+  #   ports:
+  #    - "5445:5432"
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     PG_REP_USER: postgresrep
+  #     PG_REP_PASSWORD: postgresrep
+  #   networks:
+  #     default:
+  #       aliases:
+  #         - pg_cluster
+  #   # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
+  #   # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  # db_replica:
+  #   build:
+  #     context: ..
+  #     dockerfile: .devcontainer/DockerfileSlaveDB
+  #   restart: unless-stopped
+  #   volumes:
+  #     - postgresslave-data:/var/lib/postgresql/data
+  #     - ./setup-master.sh:/docker-entrypoint-initdb.d/setup-slave.sh
+  #     - ./create-db-user.sql:/docker-entrypoint-initdb.d/create-slave-db-user.sql
+  #   ports:
+  #    - "5446:5432"
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     PG_REP_USER: postgresrep
+  #     PG_REP_PASSWORD: postgresrep
+  #     PG_MASTER_HOST: db_primary
+  #   networks:
+  #     default:
+  #       aliases:
+  #         - pg_cluster
+    # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+volumes:
+  pgprimary-data:
+  pgreplica-data:
+  app-data:

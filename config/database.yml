@@ -1,0 +1,61 @@
+# PostgreSQL. Versions 9.3 and up are supported.
+#
+# Install the pg driver:
+#   gem install pg
+# On macOS with Homebrew:
+#   gem install pg -- --with-pg-config=/usr/local/bin/pg_config
+# On macOS with MacPorts:
+#   gem install pg -- --with-pg-config=/opt/local/lib/postgresql84/bin/pg_config
+# On Windows:
+#   gem install pg
+#       Choose the win32 build.
+#       Install PostgreSQL and put its /bin directory on your path.
+#
+# Configure Using Gemfile
+# gem "pg"
+#
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  # For details on connection pooling, see Rails configuration guide
+  # https://guides.rubyonrails.org/configuring.html#database-pooling
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch('DATABASE_USER') { 'postgres' } %>
+  password: <%= ENV.fetch('DATABASE_PASSWORD') { 'password' } %>
+
+_primary: &primary
+  host: <%= ENV.fetch('DATABASE_HOST_PRIMARY') { 'db' } %>
+_replica: &replica
+  host: <%= ENV.fetch('DATABASE_HOST_REPLICA') { 'db' } %>
+  replica: true
+
+development:
+  primary:
+    database: workspace_development
+    <<: *default
+    <<: *primary
+    
+  primary_replica:
+    database: workspace_development
+    <<: *default
+    <<: *replica
+
+test:
+  primary:
+    database: workspace_test
+    <<: *default
+    <<: *primary
+  primary_replica:
+    database: workspace_test
+    <<: *default
+    <<: *replica
+
+production:
+  primary:
+    database: production
+    <<: *default
+    <<: *primary
+  primary_replica:
+    database: production
+    <<: *default
+    <<: *replica
